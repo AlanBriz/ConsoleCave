@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Optional: VSCode settings folder
+.vscode/
+
+# Optional: ignore test coverage reports if you add tests later
+coverage/
+
+# Optional: OS-specific
+*.log
