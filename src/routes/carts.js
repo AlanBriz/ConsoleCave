@@ -1,37 +1,27 @@
-const express = require('express');
-const router = express.Router();
-const CartManager = require('../CartManager');
-const ProductManager = require('../ProductManager');
-const cm = new CartManager();
-const pm = new ProductManager();
+import { Router } from 'express';
+import CartManager from '../CartManager.js';
 
-// POST /api/carts/ -> create cart
-router.post('/', async (req, res, next) => {
-  try {
-    const cart = await cm.create();
-    res.status(201).json(cart);
-  } catch (err) { next(err); }
+const router = Router();
+const cartManager = new CartManager(); 
+
+// POST /api/carts - create new cart
+router.post('/', async (req, res) => {
+  const cart = await cartManager.createCart();
+  res.status(201).json(cart);
 });
 
-// GET /api/carts/:cid -> list products in cart
-router.get('/:cid', async (req, res, next) => {
-  try {
-    const cart = await cm.getById(req.params.cid);
-    if (!cart) return res.status(404).json({ error: 'Cart not found' });
-    res.json(cart.products);
-  } catch (err) { next(err); }
+// GET /api/carts/:cid - get products in cart
+router.get('/:cid', async (req, res) => {
+  const cart = await cartManager.getCartById(req.params.cid);
+  if (!cart) return res.status(404).json({ error: 'Cart not found' });
+  res.json(cart.products);
 });
 
-// POST /api/carts/:cid/product/:pid -> add product to cart (quantity increments by 1)
-router.post('/:cid/product/:pid', async (req, res, next) => {
-  try {
-    // verify product exists
-    const product = await pm.getById(req.params.pid);
-    if (!product) return res.status(404).json({ error: 'Product not found' });
-    const cart = await cm.addProductToCart(req.params.cid, req.params.pid, 1);
-    if (!cart) return res.status(404).json({ error: 'Cart not found' });
-    res.json(cart);
-  } catch (err) { next(err); }
+// POST /api/carts/:cid/product/:pid - add product to cart
+router.post('/:cid/product/:pid', async (req, res) => {
+  const updatedCart = await cartManager.addProductToCart(req.params.cid, req.params.pid);
+  if (!updatedCart) return res.status(404).json({ error: 'Cart not found' });
+  res.json(updatedCart);
 });
 
-module.exports = router;
+export default router;

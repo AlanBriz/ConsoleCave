@@ -1,57 +1,78 @@
-const path = require('path');
-const { readJson, writeJson } = require('./utils');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES Module replacements for __dirname and __filename
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class ProductManager {
-  constructor(filename = 'data/products.json') {
-    this.filePath = path.resolve(filename);
+  constructor() {
+    this.path = path.join(__dirname, 'data', 'products.json');
   }
 
-  async getAll() {
-    return await readJson(this.filePath);
+  // Get all products
+  async getProducts() {
+    try {
+      const data = await fs.promises.readFile(this.path, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      return [];
+    }
   }
 
-  async getById(id) {
-    const items = await this.getAll();
-    return items.find(p => String(p.id) === String(id)) || null;
+  // Get one product by ID
+  async getProductById(id) {
+    const products = await this.getProducts();
+    return products.find((p) => p.id === parseInt(id));
   }
 
-  async _generateId(items) {
-    // incremental numeric id based on max existing id
-    const max = items.reduce((m, it) => {
-      const n = Number(it.id);
-      return Number.isFinite(n) ? Math.max(m, n) : m;
-    }, 0);
-    return String(max + 1);
+  // Add new product
+  async addProduct(productData) {
+    const products = await this.getProducts();
+    const newId = products.length > 0 ? products[products.length - 1].id + 1 : 1;
+
+    const newProduct = {
+      id: newId,
+      title: productData.title || 'Untitled',
+      description: productData.description || '',
+      code: productData.code || '',
+      price: productData.price || 0,
+      status: productData.status !== undefined ? productData.status : true,
+      stock: productData.stock || 0,
+      category: productData.category || 'Uncategorized',
+      thumbnails: productData.thumbnails || [],
+    };
+
+    products.push(newProduct);
+    await fs.promises.writeFile(this.path, JSON.stringify(products, null, 2));
+    return newProduct;
   }
 
-  async add(product) {
-    const items = await this.getAll();
-    const id = await this._generateId(items);
-    const now = { ...product, id };
-    items.push(now);
-    await writeJson(this.filePath, items);
-    return now;
+  // Update product
+  async updateProduct(id, updatedData) {
+    const products = await this.getProducts();
+    const index = products.findIndex((p) => p.id === parseInt(id));
+
+    if (index === -1) return null;
+
+    products[index] = { ...products[index], ...updatedData, id: products[index].id };
+
+    await fs.promises.writeFile(this.path, JSON.stringify(products, null, 2));
+    return products[index];
   }
 
-  async update(id, changes) {
-    const items = await this.getAll();
-    const idx = items.findIndex(p => String(p.id) === String(id));
-    if (idx === -1) return null;
-    // Never allow id change
-    const updated = { ...items[idx], ...changes, id: items[idx].id };
-    items[idx] = updated;
-    await writeJson(this.filePath, items);
-    return updated;
-  }
+  // Delete product
+  async deleteProduct(id) {
+    const products = await this.getProducts();
+    const index = products.findIndex((p) => p.id === parseInt(id));
 
-  async delete(id) {
-    const items = await this.getAll();
-    const idx = items.findIndex(p => String(p.id) === String(id));
-    if (idx === -1) return false;
-    items.splice(idx, 1);
-    await writeJson(this.filePath, items);
+    if (index === -1) return false;
+
+    products.splice(index, 1);
+    await fs.promises.writeFile(this.path, JSON.stringify(products, null, 2));
     return true;
   }
 }
 
-module.exports = ProductManager;
+export default ProductManager;
