@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}}</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background-color: #f8f8f8;
+      color: #333;
+    }
+
+    h1, h2, h3 {
+      color: #222;
+    }
+
+    a {
+      text-decoration: none;
+      color: #007bff;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .product-card {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 5px;
+    }
+
+    .pagination {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <nav style="margin-bottom:1rem;">
+    <a href="/">Home</a> |
+    <a href="/products">Products</a> |
+    <a href="/carts/{{localStorageCartId}}">My Cart</a>
+    </nav>
+    <hr />
+  </header>
+
+  {{{body}}} <!-- Page content goes here -->
+
+  <footer>
+    <hr />
+    <p style="text-align:center; color:#777;">© 2025 - Alan Briz - Console Cave</p>
+  </footer>
+</body>
+</html>

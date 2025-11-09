@@ -1,0 +1,56 @@
+{{!-- src/views/carts/detail.handlebars --}}
+<h1>Your Cart</h1>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th { background: #222; color: #fff; }
+  td, th { text-align: left; padding: 8px; }
+  button { padding: 6px 10px; cursor: pointer; }
+  a { text-decoration: none; color: #007bff; }
+</style>
+
+{{#if cart.products.length}}
+  <table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Subtotal</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each cart.products}}
+        <tr>
+          <td>{{this.product.title}}</td>
+          <td>${{this.product.price}}</td>
+          <td>{{this.quantity}}</td>
+          <td>${{multiply this.product.price this.quantity}}</td>
+          <td>
+            <form method="POST" action="/api/carts/{{../cart._id}}/products/{{this.product._id}}?_method=DELETE">
+              <button type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <h3>
+    Total: $
+    {{#each cart.products}}
+      {{#if @first}}{{setVar "total" 0}}{{/if}}
+      {{addToVar "total" (multiply this.product.price this.quantity)}}
+      {{#if @last}}{{getVar "total"}}{{/if}}
+    {{/each}}
+  </h3>
+
+  <form method="POST" action="/api/carts/{{cart._id}}?_method=DELETE">
+    <button type="submit">Clear Cart</button>
+  </form>
+{{else}}
+  <p>Your cart is empty.</p>
+{{/if}}
+
+<a href="/products">⬅ Back to products</a>

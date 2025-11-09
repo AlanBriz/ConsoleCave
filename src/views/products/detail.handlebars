@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>{{product.title}}</title>
+</head>
+<body>
+  <h1>{{product.title}}</h1>
+  <p><strong>Price:</strong> ${{product.price}}</p>
+  <p><strong>Category:</strong> {{product.category}}</p>
+  <p><strong>Description:</strong> {{product.description}}</p>
+
+  <button id="addToCartBtn" data-product-id="{{product._id}}">Add to cart</button>
+  <a href="/products">⬅ Back to products</a>
+
+  <script>
+  // Helper: create or get existing cart from localStorage
+  async function getOrCreateCart() {
+    let cartId = localStorage.getItem("cartId");
+    if (cartId) return cartId;
+
+    try {
+      const res = await fetch("/api/carts", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to create cart");
+      const cart = await res.json();
+      localStorage.setItem("cartId", cart._id);
+      console.log("Cart created:", cart._id);
+      return cart._id;
+    } catch (err) {
+      console.error(err);
+      alert("Could not create a cart.");
+      throw err;
+    }
+  }
+
+  document.getElementById("addToCartBtn").addEventListener("click", async () => {
+    const productId = document.getElementById("addToCartBtn").dataset.productId;
+    try {
+      const cartId = await getOrCreateCart();
+      const res = await fetch(`/api/carts/${cartId}/product/${productId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) throw new Error("Failed to add product to cart");
+      alert("Product added to cart!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add product to cart");
+    }
+  });
+  </script>
+</body>
+</html>

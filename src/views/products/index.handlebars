@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Products</title>
+</head>
+<body>
+  <h1>Products</h1>
+
+  <div style="margin-bottom: 1rem;">
+    <button id="myCartBtn">My Cart</button>
+  </div>
+
+  <div>
+    <form id="filters" action="/products">
+      <input type="text" name="query" placeholder="search or category" value="{{query}}">
+      <select name="sort">
+        <option value="">-- Sort --</option>
+        <option value="asc" {{#if (eq sort 'asc')}}selected{{/if}}>Price asc</option>
+        <option value="desc" {{#if (eq sort 'desc')}}selected{{/if}}>Price desc</option>
+      </select>
+      <input type="number" name="limit" value="{{limit}}" min="1"/>
+      <button type="submit">Apply</button>
+    </form>
+  </div>
+
+  <ul id="products">
+    {{#each products}}
+      <li>
+        <strong>{{this.title}}</strong> - ${{this.price}} - {{this.category}}
+        <button class="addToCartBtn" data-product-id="{{this._id}}">Add to cart</button>
+        <a href="/products/{{this._id}}">Details</a>
+      </li>
+    {{/each}}
+  </ul>
+
+  <div id="pagination">
+    {{#if hasPrev}}
+      <a href="{{prevLink}}">Prev</a>
+    {{/if}}
+    Page {{page}} / {{totalPages}}
+    {{#if hasNext}}
+      <a href="{{nextLink}}">Next</a>
+    {{/if}}
+  </div>
+
+<script>
+async function getOrCreateCart() {
+  let cartId = localStorage.getItem("cartId");
+  if (cartId) return cartId;
+
+  try {
+    const res = await fetch("/api/carts", { method: "POST" });
+    if (!res.ok) throw new Error("Failed to create cart");
+    const cart = await res.json();
+    localStorage.setItem("cartId", cart._id);
+    console.log("Cart created:", cart._id);
+    return cart._id;
+  } catch (err) {
+    console.error(err);
+    alert("Could not create a cart.");
+    throw err;
+  }
+}
+
+// Handle "Add to Cart" buttons
+document.querySelectorAll(".addToCartBtn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const productId = btn.dataset.productId;
+    try {
+      const cartId = await getOrCreateCart();
+      const res = await fetch(`/api/carts/${cartId}/product/${productId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) throw new Error("Failed to add product to cart");
+      alert("Product added to cart!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add product to cart");
+    }
+  });
+});
+
+// Handle "My Cart" button
+document.getElementById("myCartBtn").addEventListener("click", async () => {
+  try {
+    const cartId = await getOrCreateCart();
+    window.location.href = `/carts/${cartId}`;
+  } catch (err) {
+    console.error("Could not open cart:", err);
+    alert("Could not open your cart.");
+  }
+});
+</script>
+
+</body>
+</html>

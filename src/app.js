@@ -1,65 +1,95 @@
-import express from 'express';
-import { engine } from 'express-handlebars';
-import { Server } from 'socket.io';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// src/app.js
+import express from "express";
+import mongoose from "mongoose";
+import { engine } from "express-handlebars";
+import { Server as IOServer } from "socket.io";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+import methodOverride from "method-override";
 
-import productsRouter from './routes/products.js';
-import cartsRouter from './routes/carts.js';
-import ProductManager from './ProductManager.js';
+// Import your routers
+import productsRouter from "./routes/products.js";
+import cartsRouter from "./routes/carts.js";
+import viewsRouter from "./routes/views.js";
 
+dotenv.config();
+const PORT = process.env.PORT || 8081;
+
+// Needed for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Create express app
 const app = express();
-const PORT = 8080;
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(methodOverride("_method"));
+app.use(express.static(path.join(__dirname, "public")));
 
-// View engine
-app.engine('handlebars', engine());
-app.set('view engine', 'handlebars');
-app.set('views', path.join(__dirname, 'views'));
+// --- Handlebars setup with helpers ---
+let globalVars = {};
 
-// Routers
-app.use('/api/products', productsRouter);
-app.use('/api/carts', cartsRouter);
+app.engine(
+  "handlebars",
+  engine({
+    helpers: {
+      // Basic comparison helpers
+      eq: (a, b) => a === b,
+      ne: (a, b) => a !== b,
+      lt: (a, b) => a < b,
+      gt: (a, b) => a > b,
+      lte: (a, b) => a <= b,
+      gte: (a, b) => a >= b,
 
-// Views routes
-const productManager = new ProductManager('data/products.json');
+      // JSON stringify helper (debugging)
+      json: (context) => JSON.stringify(context),
 
-app.get('/home', async (req, res) => {
-  const products = await productManager.getProducts();
-  res.render('home', { products });
-});
-
-app.get('/realtimeproducts', async (req, res) => {
-  const products = await productManager.getProducts();
-  res.render('realTimeProducts', { products });
-});
-
-// Start server + socket.io
-const httpServer = app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
+      // Math & variable helpers for cart totals
+      multiply: (a, b) => a * b,
+      setVar: (varName, value) => {
+        globalVars[varName] = value;
+      },
+      addToVar: (varName, value) => {
+        globalVars[varName] = (globalVars[varName] || 0) + value;
+      },
+      getVar: (varName) => globalVars[varName] || 0,
+    },
+  })
 );
 
-const io = new Server(httpServer);
+app.set("view engine", "handlebars");
+app.set("views", path.join(__dirname, "views"));
+// --------------------------------------
 
-io.on('connection', (socket) => {
-  console.log('A client connected');
+// Routers
+app.use("/api/products", productsRouter);
+app.use("/api/carts", cartsRouter);
+app.use("/", viewsRouter);
 
-  socket.on('newProduct', async (productData) => {
-    await productManager.addProduct(productData);
-    const updatedProducts = await productManager.getProducts();
-    io.emit('updateProducts', updatedProducts);
+// Connect to MongoDB and start the server
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+
+    const httpServer = app.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    );
+
+    // Set up Socket.IO (real-time updates)
+    const io = new IOServer(httpServer);
+    app.set("io", io);
+
+    io.on("connection", (socket) => {
+      console.log("Socket connected:", socket.id);
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
   });
 
-  socket.on('deleteProduct', async (id) => {
-    await productManager.deleteProduct(id);
-    const updatedProducts = await productManager.getProducts();
-    io.emit('updateProducts', updatedProducts);
-  });
-});
+export default app;
